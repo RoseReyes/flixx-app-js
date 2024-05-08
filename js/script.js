@@ -38,7 +38,6 @@ const displayPopularMovies = async () => {
 
 const displayPopularTVShows = async () => {
   const {results} = await fetchAPIData('tv/popular');
-  console.log(results);
 
   results.forEach((tv) => {
     const div = document.createElement('div');
