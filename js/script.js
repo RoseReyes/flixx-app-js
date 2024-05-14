@@ -1,7 +1,17 @@
 const global = {
   currentPage: window.location.pathname,
+  search: {
+    term: '',
+    type: '',
+    pagination: 1,
+    totalPages: 1,
+  },
+  api: {
+    apiKey: '42800da2d7c030192c267c15664aab8f',
+    apiURL: 'https://api.themoviedb.org/3/',
+  },
 };
-
+// Display movies
 const displayPopularMovies = async () => {
   const {results} = await fetchAPIData('movie/popular');
 
@@ -36,6 +46,7 @@ const displayPopularMovies = async () => {
   });
 };
 
+// Display movie details
 const displayMovieDetails = async () => {
   const movieId = window.location.search.split('=')[1];
   const movie = await fetchAPIData(`movie/${movieId}`);
@@ -105,6 +116,7 @@ const displayMovieDetails = async () => {
   document.querySelector('#movie-details').appendChild(div);
 };
 
+// Display tv shows
 const displayPopularTVShows = async () => {
   const {results} = await fetchAPIData('tv/popular');
 
@@ -138,6 +150,7 @@ const displayPopularTVShows = async () => {
   });
 };
 
+// Display tv show details
 const displayShowDetails = async () => {
   const seriesId = window.location.search.split('=')[1];
   console.log(seriesId);
@@ -209,23 +222,7 @@ const displayShowDetails = async () => {
   document.querySelector('#show-details').appendChild(div);
 };
 
-// Fetch data from API
-const fetchAPIData = async (endpoint) => {
-  const API_KEY = '42800da2d7c030192c267c15664aab8f';
-  const API_URL = 'https://api.themoviedb.org/3/';
-
-  toggleSpinner();
-
-  const response = await fetch(
-    `${API_URL}${endpoint}?api_key=${API_KEY}&language=en-US`
-  );
-  const data = await response.json();
-
-  toggleSpinner();
-
-  return data;
-};
-
+// Show/hide spinner
 const toggleSpinner = () => {
   const el = document.querySelector('.spinner');
 
@@ -236,6 +233,7 @@ const toggleSpinner = () => {
   }
 };
 
+// Highlight menu link
 const highlightActiveLink = () => {
   const links = document.querySelectorAll('.nav-link');
   links.forEach((link) => {
@@ -246,10 +244,12 @@ const highlightActiveLink = () => {
   });
 };
 
+// Number formatting
 const numberWithCommas = (number) => {
   return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
+// Display backdrop movie/tv show poster
 const displayBackgroundImage = (type, path) => {
   const overlayDiv = document.createElement('div');
   overlayDiv.style.backgroundImage = `url(https://tmdb.org/t/p/original/${path})`;
@@ -271,6 +271,7 @@ const displayBackgroundImage = (type, path) => {
   }
 };
 
+// Display movie slider
 const displaySlider = async () => {
   const {results} = await fetchAPIData('movie/now_playing');
 
@@ -290,6 +291,61 @@ const displaySlider = async () => {
   });
 };
 
+// Show alert
+const showAlert = (message, className) => {
+  const alertEl = document.createElement('div');
+  alertEl.classList.add('alert', className);
+  alertEl.appendChild(document.createTextNode(message));
+  document.querySelector('#alert').appendChild(alertEl);
+
+  setTimeout(() => alertEl.remove(), 3000);
+};
+
+// Search movies/show from API
+const search = async () => {
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+
+  global.search.type = urlParams.get('type');
+  global.search.term = urlParams.get('search-term');
+
+  if (global.search.type !== '' && global.search.term !== '') {
+    const results = await searchAPIData();
+    console.log(results);
+  } else {
+    showAlert('Please enter a search term');
+  }
+};
+
+// Fetch data from API
+const fetchAPIData = async (endpoint) => {
+  toggleSpinner();
+
+  const response = await fetch(
+    `${global.api.apiURL}${endpoint}?api_key=${global.api.apiKey}&language=en-US`
+  );
+  const data = await response.json();
+
+  toggleSpinner();
+
+  return data;
+};
+
+// Make request to search
+const searchAPIData = async (endpoint) => {
+  toggleSpinner();
+
+  const response = await fetch(
+    `${global.api.apiURL}search/${global.search.type}?api_key=${global.api.apiKey}&language=en-US&query=${global.search.term}`
+  );
+  const data = await response.json();
+
+  toggleSpinner();
+
+  return data;
+};
+
+// Initialize movie slider
 const initSwiper = () => {
   const swiper = new Swiper('.swiper', {
     slidesPerView: 1,
@@ -332,7 +388,7 @@ const init = () => {
       displayShowDetails();
       break;
     case '/search.html':
-      console.log('Search');
+      search();
       break;
   }
 
