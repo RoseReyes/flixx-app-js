@@ -138,6 +138,77 @@ const displayPopularTVShows = async () => {
   });
 };
 
+const displayShowDetails = async () => {
+  const seriesId = window.location.search.split('=')[1];
+  console.log(seriesId);
+
+  const series = await fetchAPIData(`tv/${seriesId}`);
+  console.log(series);
+
+  displayBackgroundImage('series', series.backdrop_path);
+
+  const div = document.createElement('div');
+  div.innerHTML = `<div class="details-top">
+          <div>
+            ${
+              series.poster_path
+                ? `<img
+                src='https://image.tmdb.org/t/p/w500${series.poster_path}'
+                class='card-img-top'
+                alt='${series.name}'
+              />`
+                : `<img
+                src='../images/no-image.jpg'
+                class='card-img-top'
+                alt='${series.name}'
+              />`
+            }
+          </div>
+          <div>
+            <h2>${series.name}</h2>
+            <p>
+              <i class="fas fa-star text-primary"></i>
+              ${series.vote_average} / 10
+            </p>
+            <p class="text-muted">Release Date: ${series.first_air_date}</p>
+            <p>
+              ${series.overview}
+            </p>
+            <h5>Genres</h5>
+            <ul class="list-group">
+               ${series.genres
+                 .map((genre) => `<li>${genre.name}</li>`)
+                 .join('')}
+            </ul>
+            <a href="${
+              series.homepage
+            }" target="_blank" class="btn">Visit Show Homepage</a>
+          </div>
+        </div>
+        <div class="details-bottom">
+          <h2>Show Info</h2>
+          <ul>
+            <li><span class="text-secondary">Number Of Episodes:</span> ${
+              series.number_of_episodes
+            }</li>
+            <li>
+              <span class="text-secondary">Last Episode To Air:</span> ${
+                series.last_episode_to_air.air_date
+              }
+            </li>
+            <li><span class="text-secondary">Status:</span> ${
+              series.status
+            }</li>
+          </ul>
+          <h4>Production Companies</h4>
+          <div class="list-group">${series.production_companies
+            .map((company) => `<span>${company.name}</span>`)
+            .join(', ')}</div>
+        </div>`;
+
+  document.querySelector('#show-details').appendChild(div);
+};
+
 // Fetch data from API
 const fetchAPIData = async (endpoint) => {
   const API_KEY = '42800da2d7c030192c267c15664aab8f';
@@ -200,11 +271,55 @@ const displayBackgroundImage = (type, path) => {
   }
 };
 
+const displaySlider = async () => {
+  const {results} = await fetchAPIData('movie/now_playing');
+
+  results.forEach((result) => {
+    const div = document.createElement('div');
+    div.classList.add('swiper-slide');
+
+    div.innerHTML = `<a href="movie-details.html?id=${result.id}">
+    <img src="https://image.tmdb.org/t/p/w500${result.poster_path}" alt="${result.title}" />
+      </a> <h4 class="swiper-rating">
+              <i class="fas fa-star text-secondary"></i> ${result.vote_average} / 10
+            </h4>`;
+
+    document.querySelector('.swiper-wrapper').appendChild(div);
+
+    initSwiper();
+  });
+};
+
+const initSwiper = () => {
+  const swiper = new Swiper('.swiper', {
+    slidesPerView: 1,
+    spaceBetween: 30,
+    freeMode: true,
+    loop: true,
+    autoplay: {
+      delay: 4000,
+      disableOnInteraction: false,
+    },
+    breakpoints: {
+      500: {
+        slidesPerView: 2,
+      },
+      700: {
+        slidesPerView: 3,
+      },
+      1200: {
+        slidesPerView: 4,
+      },
+    },
+  });
+};
+
 // Init app
 const init = () => {
   switch (global.currentPage) {
     case '/':
     case '/index.html':
+      displaySlider();
       displayPopularMovies();
       break;
     case '/shows.html':
@@ -214,7 +329,7 @@ const init = () => {
       displayMovieDetails();
       break;
     case '/tv-details.html':
-      console.log('TV Show Details');
+      displayShowDetails();
       break;
     case '/search.html':
       console.log('Search');
