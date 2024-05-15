@@ -3,8 +3,9 @@ const global = {
   search: {
     term: '',
     type: '',
-    pagination: 1,
+    page: 1,
     totalPages: 1,
+    totalResults: 0,
   },
   api: {
     apiKey: '42800da2d7c030192c267c15664aab8f',
@@ -13,7 +14,7 @@ const global = {
 };
 // Display movies
 const displayPopularMovies = async () => {
-  const {results} = await fetchAPIData('movie/popular');
+  const { results } = await fetchAPIData('movie/popular');
 
   results.forEach((movie) => {
     const div = document.createElement('div');
@@ -118,7 +119,7 @@ const displayMovieDetails = async () => {
 
 // Display tv shows
 const displayPopularTVShows = async () => {
-  const {results} = await fetchAPIData('tv/popular');
+  const { results } = await fetchAPIData('tv/popular');
 
   results.forEach((tv) => {
     const div = document.createElement('div');
@@ -273,7 +274,7 @@ const displayBackgroundImage = (type, path) => {
 
 // Display movie slider
 const displaySlider = async () => {
-  const {results} = await fetchAPIData('movie/now_playing');
+  const { results } = await fetchAPIData('movie/now_playing');
 
   results.forEach((result) => {
     const div = document.createElement('div');
@@ -291,10 +292,97 @@ const displaySlider = async () => {
   });
 };
 
+const displaySearchResults = (results) => {
+  // Clear the div containers
+  document.querySelector('#search-results').innerHTML = '';
+  document.querySelector('#search-results-heading').innerHTML = '';
+  document.querySelector('#pagination').innerHTML = '';
+
+  results.forEach((result) => {
+    const div = document.createElement('div');
+    div.classList.add('card');
+
+    div.innerHTML = `<a href="${global.search.type}-details.html?id=${
+      result.id
+    }">
+      ${
+        result.poster_path
+          ? `<img
+            src="https://image.tmdb.org/t/p/w500${result.poster_path}"
+            class="card-img-top"
+            alt="${global.search.type === 'movie' ? result.title : result.name}"
+          /> `
+          : `<img
+            src="../images/no-image.jpg"
+            class="card-img-top"
+            alt="${global.search.type === 'movie' ? result.title : result.name}"
+          />`
+      }
+      </a>
+      <div class="card-body">
+        <h5 class="card-title">${
+          global.search.type === 'movie' ? result.title : result.name
+        }</h5>
+        <p class="card-text">
+          <small class="text-muted">Release: ${
+            global.search.type === 'movie'
+              ? result.release_date
+              : result.first_air_date
+          }</small>
+        </p>
+        
+      </div>`;
+
+    document.querySelector('#search-results').appendChild(div);
+    document.querySelector(
+      '#search-results-heading'
+    ).innerHTML = `<h2>${results.length} of ${global.search.totalResults} Results for ${global.search.term}</h2>`;
+  });
+
+  displayPagination();
+};
+
+// Create and display pagination for search
+const displayPagination = () => {
+  const div = document.createElement('div');
+  div.classList.add('pagination');
+
+  div.innerHTML = `<button class="btn btn-primary" id="prev">Prev</button>
+          <button class="btn btn-primary" id="next">Next</button>
+          <div class="page-counter">Page ${global.search.page} of ${global.search.totalPages}</div>`;
+
+  document.querySelector('#pagination').appendChild(div);
+
+  // Disable previous button if on first page
+  if (global.search.page === 1) {
+    document.querySelector('#prev').disabled = true;
+  }
+
+  // Disable next button if on last page
+  if (global.search.page === global.search.totalPages) {
+    document.querySelector('#next').disabled = true;
+  }
+
+  // Next page
+  document.querySelector('#next').addEventListener('click', async () => {
+    global.search.page++;
+    const { results } = await searchAPIData();
+    displaySearchResults(results);
+  });
+
+  // Previous page
+  document.querySelector('#prev').addEventListener('click', async () => {
+    global.search.page--;
+    const { results } = await searchAPIData();
+    displaySearchResults(results);
+  });
+};
+
 // Show alert
-const showAlert = (message, className) => {
+const showAlert = (message, className = 'error') => {
   const alertEl = document.createElement('div');
   alertEl.classList.add('alert', className);
+
   alertEl.appendChild(document.createTextNode(message));
   document.querySelector('#alert').appendChild(alertEl);
 
@@ -310,8 +398,20 @@ const search = async () => {
   global.search.term = urlParams.get('search-term');
 
   if (global.search.type !== '' && global.search.term !== '') {
-    const results = await searchAPIData();
-    console.log(results);
+    const { results, total_pages, page, total_results } = await searchAPIData();
+
+    global.search.page = page;
+    global.search.totalPages = total_pages;
+    global.search.totalResults = total_results;
+
+    if (results.length === 0) {
+      showAlert('No results found');
+      return;
+    }
+
+    displaySearchResults(results);
+
+    document.querySelector('#search-term').value = '';
   } else {
     showAlert('Please enter a search term');
   }
@@ -332,11 +432,11 @@ const fetchAPIData = async (endpoint) => {
 };
 
 // Make request to search
-const searchAPIData = async (endpoint) => {
+const searchAPIData = async () => {
   toggleSpinner();
 
   const response = await fetch(
-    `${global.api.apiURL}search/${global.search.type}?api_key=${global.api.apiKey}&language=en-US&query=${global.search.term}`
+    `${global.api.apiURL}search/${global.search.type}?api_key=${global.api.apiKey}&language=en-US&query=${global.search.term}&page=${global.search.page}`
   );
   const data = await response.json();
 
